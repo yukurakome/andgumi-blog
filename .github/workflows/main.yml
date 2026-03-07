@@ -1,0 +1,28 @@
+name: Chokatsu Blog Auto Post
+
+on:
+  schedule:
+    - cron: '10 12 * * *'  # 毎日日本時間 21:10 に実行
+  workflow_dispatch:      # 手動実行ボタンを出す
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: |
+          pip install requests google-generativeai
+      - name: Run script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_PASSWORD: ${{ secrets.WP_PASSWORD }}
+          WP_URL: ${{ secrets.WP_URL }}
+          UNSPLASH_KEY: ${{ secrets.UNSPLASH_KEY }}
+        run: python post.py
