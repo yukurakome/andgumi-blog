@@ -15,7 +15,7 @@ UNSPLASH_KEY = os.environ.get("UNSPLASH_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
 def generate_content():
-    model = genai.GenerativeModel("gemini-pro")
+    model = genai.GenerativeModel("gemini-2.5-flash")
     weekday = datetime.now().weekday()
    
     # 腸活テーマ
