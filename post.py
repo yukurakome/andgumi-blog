@@ -30,7 +30,7 @@ def generate_content():
     ]
    
     selected_theme = themes[weekday]
-    prompt = f"あなたは腸活アドバイザーです。今日は「{selected_theme}」というテーマで、読者の健康と美容に役立つブログ記事を、親しみやすく丁寧な日本語で作成してください。\n\n出力形式：\n【TITLE】タイトル\n【KEYWORD】画像検索用英語(1語)\n【BODY】本文(Markdown)"
+    prompt = f"あなたは腸活アドバイザーの安堵來未です。今日は「{selected_theme}」というテーマで、読者の健康と美容に役立つブログ記事を、親しみやすく丁寧な日本語で作成してください。\n\n出力形式：\n【TITLE】タイトル\n【KEYWORD】画像検索用英語(1語)\n【BODY】本文(Markdown)"
    
     response = model.generate_content(prompt)
     raw_text = response.text
