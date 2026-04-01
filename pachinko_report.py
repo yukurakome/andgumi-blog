@@ -44,7 +44,7 @@ def collect_news():
 def generate_report(raw_news):
     print("Geminiでレポートを生成中...")
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
     prompt = f"""
 あなたは日本のパチンコ・パチスロ業界に精通したシニア・アナリストです。
 以下の本日収集した業界情報をもとに、{today}付けの業界日報を作成してください。
