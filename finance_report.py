@@ -46,7 +46,7 @@ def collect_finance_news():
 def generate_report(raw_data):
     print("Geminiでレポートを生成中...")
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
     prompt = f"""
 あなたは日本の金融市場に精通したシニアアナリストです。
 以下の本日収集した金融情報をもとに、{today}（{weekday}曜日）付けの金融日報を作成してください。
