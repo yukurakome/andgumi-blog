@@ -73,7 +73,7 @@ def collect_news():
 def generate_report(market_data, news_data):
     print("Geminiでレポートを生成中...")
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     market_str = "\n".join([f"・{k}：{v}" for k, v in market_data.items()])
 
