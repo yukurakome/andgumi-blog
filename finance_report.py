@@ -15,6 +15,36 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 }
 
+def get_market_data():
+    """Yahoo Finance非公式APIで数値データを取得"""
+    print("市場データを取得中...")
+    symbols = {
+        "日経平均": "^N225",
+        "ドル円": "USDJPY=X",
+        "ユーロ円": "EURJPY=X",
+        "NY金先物": "GC=F",
+        "NYダウ": "^DJI",
+        "ナスダック": "^IXIC",
+    }
+    results = {}
+    for name, symbol in symbols.items():
+        try:
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=2d"
+            res = requests.get(url, headers=HEADERS, timeout=10)
+            data = res.json()
+            meta = data["chart"]["result"][0]["meta"]
+            price = meta.get("regularMarketPrice", "取得できず")
+            prev  = meta.get("chartPreviousClose", "取得できず")
+            if isinstance(price, float) and isinstance(prev, float):
+                change = price - prev
+                pct    = (change / prev) * 100
+                results[name] = f"{price:,.2f}（前日比 {change:+,.2f} / {pct:+.2f}%）"
+            else:
+                results[name] = "取得できず"
+        except Exception as e:
+            results[name] = f"取得できず（{e}）"
+    return results
+
 def scrape(url, max_chars=2000):
     try:
         res = requests.get(url, headers=HEADERS, timeout=10)
@@ -27,14 +57,11 @@ def scrape(url, max_chars=2000):
     except Exception as e:
         return f"[取得失敗: {e}]"
 
-def collect_finance_news():
-    print("金融情報を収集中...")
+def collect_news():
+    print("ニュースを収集中...")
     sources = {
-        "日経平均・株価": "https://finance.yahoo.co.jp/markets/japan/",
-        "株式ニュース": "https://finance.yahoo.co.jp/news/",
-        "為替レート": "https://finance.yahoo.co.jp/markets/forex/",
+        "株式・経済ニュース": "https://finance.yahoo.co.jp/news/",
         "金相場（田中貴金属）": "https://gold.tanaka.co.jp/commodity/kaitori/",
-        "金相場ニュース": "https://gold.tanaka.co.jp/news/",
         "米穀機構": "https://www.komenet.jp/",
     }
     results = []
@@ -43,25 +70,31 @@ def collect_finance_news():
         results.append(f"【{name}】\n{scrape(url)}\n")
     return "\n".join(results)
 
-def generate_report(raw_data):
+def generate_report(market_data, news_data):
     print("Geminiでレポートを生成中...")
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
+
+    market_str = "\n".join([f"・{k}：{v}" for k, v in market_data.items()])
+
     prompt = f"""
 あなたは日本の金融市場に精通したシニアアナリストです。
-以下の本日収集した金融情報をもとに、{today}（{weekday}曜日）付けの金融日報を作成してください。
+個人投資家が投資判断の参考にできる、具体的で実践的な金融日報を作成してください。
 
-# 本日収集した金融情報
-{raw_data}
+# 本日の市場データ（リアルタイム取得）
+{market_str}
 
-# 注意事項
-- 前日終値・直近値をできるだけ具体的な数字で記載すること
-- 数字が取得できない場合は「取得できず」と正直に記載すること
-- 市場が休場の場合（土日祝）はその旨を記載すること
-- 予想はあくまで参考情報であり、投資判断は自己責任である旨を必ず記載すること
+# 本日収集したニュース
+{news_data}
+
+# 重要な指示
+- 上記の具体的な数値を必ずレポートに反映すること
+- 「取得できず」の項目は正直にそのまま記載すること
+- 投資判断の参考になる具体的な価格帯・水準を記載すること
+- 土日祝で市場休場の場合はその旨を明記すること
 - 全体で2000字程度
 
-# 出力フォーマット（必ずこの形式で）
+# 出力フォーマット
 
 金融マーケット日報　{today}（{weekday}曜日）
 
@@ -71,27 +104,35 @@ def generate_report(raw_data):
 ・
 
 ■ 【1】日本株・日経平均
-前日終値、騰落率、注目セクターや個別銘柄の動向を記載。
+終値・前日比・騰落率を明記。注目セクターや売買のポイントを記載。
 
 ■ 【2】為替（ドル円・ユーロ円）
-現在レート、前日比、トレンドの方向感を記載。
+現在レート・前日比を明記。円高／円安トレンドと輸出入企業への影響。
 
 ■ 【3】金相場
-国内金価格（円/g）、NY金先物（ドル/オンス）、前日比を記載。
+NY金先物・前日比を明記。上昇／下落の根拠と今後の見通し。
 
 ■ 【4】米相場
-国内米価格の動向、需給状況、直近のニュースを記載。
+国内米価格の動向・需給状況・直近ニュース。
 
 ■ 【5】本日のマーケット予想
-・日経平均：上昇／横ばい／下落予想と根拠
-・ドル円：円高／円安方向と注目材料
+・日経平均：上昇／横ばい／下落予想と根拠・注目価格帯
+・ドル円：円高／円安方向と注目材料・想定レンジ
 ・金相場：上昇／下落予想と根拠
 ・米相場：需給見通し
 ・本日の総合リスク度：低／中／高（理由も添えること）
-※予想はあくまで参考情報です。投資判断は必ずご自身の責任で行ってください。
+・今日の注目経済指標・イベント
+※投資判断は必ずご自身の責任で行ってください。
 
-■ 【6】アナリストの視点（考察）
-前日の相場を振り返り、本日注目すべきポイントと中長期的な視点からの考察を記載。
+■ 【6】個人投資家へのアドバイス
+・短期（今週）の戦略
+・中期（1ヶ月）の見通し
+・今日やるべきこと・避けるべきこと
+・注意すべきリスク要因
+
+■ 【7】アナリストの視点（総括）
+相場全体の流れ・米国市場との連動・地政学リスク・
+日銀FRB政策との関係を踏まえた本日の総括。
 """
     response = model.generate_content(prompt)
     return response.text
@@ -117,8 +158,6 @@ def send_email(report_text):
             )
         elif line.startswith("・"):
             html_lines.append(f'<li style="margin:4px 0;">{line[1:]}</li>')
-        elif "---" in line:
-            html_lines.append('<hr style="border:1px solid #eee;">')
         elif line.strip():
             html_lines.append(f'<p style="margin:4px 0;">{line}</p>')
 
@@ -134,6 +173,7 @@ def send_email(report_text):
   {''.join(html_lines)}
   <hr style="border:1px solid #eee; margin-top:32px;">
   <p style="color:#aaa; font-size:11px; text-align:center;">
+    ※本レポートは参考情報です。投資判断はご自身の責任で行ってください。<br>
     GitHub Actions + Gemini により自動生成（完全無料）
   </p>
 </body>
@@ -149,8 +189,9 @@ def send_email(report_text):
 
 if __name__ == "__main__":
     print(f"=== 金融マーケット日報 開始 {today} ===")
-    raw_data = collect_finance_news()
-    report   = generate_report(raw_data)
+    market_data = get_market_data()
+    news_data   = collect_news()
+    report      = generate_report(market_data, news_data)
     print(report)
     send_email(report)
     print("=== 完了 ===")
