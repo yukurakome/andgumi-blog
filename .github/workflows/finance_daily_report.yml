@@ -1,8 +1,6 @@
 name: Finance Daily Report
 
 on:
-  schedule:
-    - cron: '0 20 * * 1-5'
   workflow_dispatch:
 
 jobs:
